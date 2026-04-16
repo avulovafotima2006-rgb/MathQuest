@@ -529,3 +529,51 @@ h1, h2, h3, h4 {
 .badge:hover {
     transform: scale(1.1) rotate(5deg);
 }
+/* Cloud Sync Loader */
+#cloud-loader {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    background: var(--card-bg);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--primary);
+    transform: translateY(-100px);
+    opacity: 0;
+    transition: var(--transition);
+    z-index: 9999;
+}
+
+#cloud-loader.active {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(99, 102, 241, 0.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    #cloud-loader {
+        top: auto;
+        bottom: 2rem;
+        right: 50%;
+        transform: translate(50%, 100px);
+    }
+    #cloud-loader.active {
+        transform: translate(50%, 0);
+    }
+}

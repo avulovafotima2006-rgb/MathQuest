@@ -1,7 +1,9 @@
-// MathQuest - All-in-one script for local execution
-// Includes: Data, Config, and App Logic
+import { firebaseConfig } from './firebase-config.js';
 
-// 1. Math Topics and Quiz Data
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
 // 2. App State
 const state = {
     user: { name: 'Admin', id: 'admin' },
@@ -33,26 +35,51 @@ let currentQuizState = {
     answers: []
 };
 
-function init() {
-    loadLocalData();
+async function init() {
+    showLoading();
+    await loadCloudData();
     setupNavigation();
     setupThemeToggle();
     updateHeaderStats();
+    hideLoading();
     navigate('dashboard');
 }
 
-function loadLocalData() {
-    const saved = localStorage.getItem('mathquest_admin_v1');
-    if (saved) {
-        try {
-            const data = JSON.parse(saved);
-            Object.assign(state, data);
-        } catch(e) { console.error("Data load error", e); }
+async function loadCloudData() {
+    try {
+        const doc = await db.collection('settings').doc('admin_v1').get();
+        if (doc.exists) {
+            const data = doc.data();
+            // Sync state with cloud data
+            state.xp = data.xp || 0;
+            state.level = data.level || 1;
+            state.streak = data.streak || 0;
+            state.progress = data.progress || {};
+            state.unlockedTopics = data.unlockedTopics || [];
+            state.topics = data.topics || [];
+            state.materials = data.materials || {};
+        }
+    } catch (e) {
+        console.error("Cloud load error", e);
+        // Fallback or warning
     }
 }
 
-function saveLocalData() {
-    localStorage.setItem('mathquest_admin_v1', JSON.stringify(state));
+async function saveCloudData() {
+    try {
+        await db.collection('settings').doc('admin_v1').set({
+            xp: state.xp,
+            level: state.level,
+            streak: state.streak,
+            progress: state.progress,
+            unlockedTopics: state.unlockedTopics,
+            topics: state.topics,
+            materials: state.materials
+        });
+    } catch (e) {
+        console.error("Cloud save error", e);
+        alert("Xatolik: Ma'lumotlarni bulutga saqlab bo'lmadi. ❌");
+    }
 }
 
 function setupNavigation() {
@@ -105,7 +132,23 @@ function updateHeaderStats() {
     if (streak) streak.textContent = state.streak;
 }
 
-function addXP(amount) {
+function showLoading() {
+    let loader = document.getElementById('cloud-loader');
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'cloud-loader';
+        loader.innerHTML = '<div class="spinner"></div><p>Bulut bilan sinxronlanmoqda...</p>';
+        document.body.appendChild(loader);
+    }
+    loader.classList.add('active');
+}
+
+function hideLoading() {
+    const loader = document.getElementById('cloud-loader');
+    if (loader) loader.classList.remove('active');
+}
+
+async function addXP(amount) {
     state.xp += amount;
     const newLevel = Math.floor(state.xp / 100) + 1;
     if (newLevel > state.level) {
@@ -113,15 +156,16 @@ function addXP(amount) {
         alert(`Tabriklaymiz! Siz ${newLevel}-darajaga chiqdingiz! 🎊`);
     }
     updateHeaderStats();
-    saveLocalData();
+    await saveCloudData();
 }
 
 // Admin Topic Management
-function addTopic() {
+async function addTopic() {
     const title = document.getElementById('new-topic-title').value;
     
     if (!title) return alert("Mavzu nomini kiriting!");
     
+    showLoading();
     const id = title.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const newTopic = {
         id: id,
@@ -142,30 +186,32 @@ function addTopic() {
         state.materials[id].push({
             name: file.name,
             type: type,
-            url: URL.createObjectURL(file)
+            url: '#' // Note: physical binary storage requires Firebase Storage
         });
     }
 
-    saveLocalData();
+    await saveCloudData();
+    hideLoading();
     renderTopics();
     alert("Yangi mavzu va fayllar muvaffaqiyatli saqlandi! ✅");
 }
 window.addTopic = addTopic;
 
 // Simulated Physical Upload
-function triggerUpload(topicId, type) {
+async function triggerUpload(topicId, type) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = type === 'pdf' ? '.pdf' : type === 'doc' ? '.doc,.docx' : '.ppt,.pptx';
     
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
+        showLoading();
         const newFile = {
             name: file.name,
             type: type,
-            url: URL.createObjectURL(file)
+            url: '#' 
         };
 
         if (!state.materials[topicId]) {
@@ -173,7 +219,8 @@ function triggerUpload(topicId, type) {
         }
         state.materials[topicId].push(newFile);
         
-        saveLocalData();
+        await saveCloudData();
+        hideLoading();
         renderTopics();
         alert(`${file.name} muvaffaqiyatli biriktirildi! ✅`);
     };
@@ -310,7 +357,7 @@ function submitAnswer(answer) {
     }
 }
 
-function finishQuiz() {
+async function finishQuiz() {
     const { topic, score } = currentQuizState;
     const finalPercent = Math.round((score / topic.quizzes.length) * 100);
     const container = document.getElementById('view-container');
@@ -330,7 +377,7 @@ function finishQuiz() {
     }
 
     const earnedXP = score * 10;
-    addXP(earnedXP);
+    await addXP(earnedXP);
 
     container.innerHTML = `
         <div class="quiz-result fade-in card text-center">
@@ -343,7 +390,7 @@ function finishQuiz() {
             <button class="primary-btn" onclick="appNavigate('topics')">Mavzularga qaytish</button>
         </div>
     `;
-    saveLocalData();
+    await saveCloudData();
 }
 
 function renderVideos() {
@@ -394,12 +441,13 @@ function renderVideos() {
     `;
 }
 
-function addVideo() {
+async function addVideo() {
     const topicId = document.getElementById('video-topic-id').value;
     let url = document.getElementById('video-url').value;
 
     if (!topicId || !url) return alert("Barcha maydonlarni to'ldiring!");
 
+    showLoading();
     // Convert regular YouTube link to embed link if needed
     if (url.includes('watch?v=')) {
         url = url.replace('watch?v=', 'embed/');
@@ -417,7 +465,8 @@ function addVideo() {
         xp: 20
     });
 
-    saveLocalData();
+    await saveCloudData();
+    hideLoading();
     renderVideos();
     alert("Video muvaffaqiyatli qo'shildi! 🎥✅");
 }
@@ -546,13 +595,14 @@ function toggleQuizOptions(type) {
 }
 window.toggleQuizOptions = toggleQuizOptions;
 
-function addQuestion() {
+async function addQuestion() {
     const topicId = document.getElementById('quiz-topic-id').value;
     const type = document.getElementById('quiz-type').value;
     const questionText = document.getElementById('quiz-question').value;
 
     if (!topicId || !questionText) return alert("Barcha maydonlarni to'ldiring!");
 
+    showLoading();
     const topic = state.topics.find(t => t.id === topicId);
     if (!topic) return;
     if (!topic.quizzes) topic.quizzes = [];
@@ -581,7 +631,8 @@ function addQuestion() {
         });
     }
 
-    saveLocalData();
+    await saveCloudData();
+    hideLoading();
     renderMustahkamlash();
     alert("Savol muvaffaqiyatli qo'shildi! 📝✅");
 }
@@ -637,7 +688,7 @@ function openEditTopic(topicId) {
 window.openEditTopic = openEditTopic;
 
 
-function saveTopicEdit(id) {
+async function saveTopicEdit(id) {
     const topic = state.topics.find(t => t.id === id);
     if (!topic) return;
 
@@ -646,6 +697,7 @@ function saveTopicEdit(id) {
 
     if (!newTitle) return alert("Mavzu nomini kiriting!");
 
+    showLoading();
     topic.title = newTitle;
 
     // Handle new file additions
@@ -655,20 +707,23 @@ function saveTopicEdit(id) {
         state.materials[id].push({
             name: file.name,
             type: type,
-            url: URL.createObjectURL(file)
+            url: '#' 
         });
     }
 
-    saveLocalData();
+    await saveCloudData();
+    hideLoading();
     renderTopics();
     alert("Mavzu muvaffaqiyatli yangilandi! ✅");
 }
 window.saveTopicEdit = saveTopicEdit;
 
-function removeMaterial(topicId, index) {
+async function removeMaterial(topicId, index) {
     if (confirm("Ushbu materialni ro'yxatdan o'chirmoqchimisiz?")) {
+        showLoading();
         state.materials[topicId].splice(index, 1);
-        saveLocalData();
+        await saveCloudData();
+        hideLoading();
         openEditTopic(topicId); // Refresh edit view
     }
 }
