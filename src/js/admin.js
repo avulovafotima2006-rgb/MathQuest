@@ -182,7 +182,8 @@ async function saveCloudData() {
         updateSyncTime();
     } catch (e) {
         console.error("Cloud save error", e);
-        alert("Xatolik: Ma'lumotlarni bulutga saqlab bo'lmadi. ❌");
+        alert("Xatolik: Ma'lumotlarni bulutga saqlab bo'lmadi. ❌\nIltimos, internet aloqasini yoki Firebase qoidalarini tekshiring.");
+        throw e;
     }
 }
 
@@ -202,10 +203,14 @@ async function removeTopic(topicId) {
         delete state.materials[topicId];
         delete state.progress[topicId];
         
-        await saveCloudData();
-        hideLoading();
-        renderTopics();
-        alert("Mavzu muvaffaqiyatli o'chirildi! 🗑️");
+        try {
+            await saveCloudData();
+            hideLoading();
+            renderTopics();
+            alert("Mavzu muvaffaqiyatli o'chirildi! 🗑️");
+        } catch (e) {
+            hideLoading();
+        }
     }
 }
 window.removeTopic = removeTopic;
@@ -330,10 +335,14 @@ async function addTopic() {
         });
     }
 
-    await saveCloudData();
-    hideLoading();
-    renderTopics();
-    alert("Yangi mavzu va fayllar muvaffaqiyatli saqlandi! ✅");
+    try {
+        await saveCloudData();
+        hideLoading();
+        renderTopics();
+        alert("Yangi mavzu va fayllar muvaffaqiyatli saqlandi! ✅");
+    } catch (e) {
+        hideLoading();
+    }
 }
 window.addTopic = addTopic;
 
@@ -656,10 +665,14 @@ async function addVideo() {
         xp: 20
     });
 
-    await saveCloudData();
-    hideLoading();
-    renderVideos();
-    alert("Video muvaffaqiyatli qo'shildi! 🎥✅");
+    try {
+        await saveCloudData();
+        hideLoading();
+        renderVideos();
+        alert("Video muvaffaqiyatli qo'shildi! 🎥✅");
+    } catch (e) {
+        hideLoading();
+    }
 }
 window.addVideo = addVideo;
 
@@ -816,10 +829,14 @@ async function addQuestion() {
         });
     }
 
-    await saveCloudData();
-    hideLoading();
-    renderMustahkamlash();
-    alert("Savol muvaffaqiyatli qo'shildi! 📝✅");
+    try {
+        await saveCloudData();
+        hideLoading();
+        renderMustahkamlash();
+        alert("Savol muvaffaqiyatli qo'shildi! 📝✅");
+    } catch (e) {
+        hideLoading();
+    }
 }
 window.addQuestion = addQuestion;
 
@@ -896,10 +913,14 @@ async function saveTopicEdit(id) {
         });
     }
 
-    await saveCloudData();
-    hideLoading();
-    renderTopics();
-    alert("Mavzu muvaffaqiyatli yangilandi! ✅");
+    try {
+        await saveCloudData();
+        hideLoading();
+        renderTopics();
+        alert("Mavzu muvaffaqiyatli yangilandi! ✅");
+    } catch (e) {
+        hideLoading();
+    }
 }
 window.saveTopicEdit = saveTopicEdit;
 
@@ -907,9 +928,13 @@ async function removeMaterial(topicId, index) {
     if (confirm("Ushbu materialni ro'yxatdan o'chirmoqchimisiz?")) {
         showLoading();
         state.materials[topicId].splice(index, 1);
-        await saveCloudData();
-        hideLoading();
-        openEditTopic(topicId); // Refresh edit view
+        try {
+            await saveCloudData();
+            hideLoading();
+            openEditTopic(topicId); // Refresh edit view
+        } catch (e) {
+            hideLoading();
+        }
     }
 }
 })(); // End of Admin Namespace
