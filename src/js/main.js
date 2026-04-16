@@ -37,13 +37,22 @@ let currentQuizState = {
 };
 
 async function init() {
-    showLoading();
-    await loadCloudData();
-    setupNavigation();
-    setupThemeToggle();
-    updateHeaderStats();
-    hideLoading();
-    navigate('dashboard');
+    try {
+        console.log("App initializing...");
+        showLoading();
+        await loadCloudData();
+        setupNavigation();
+        setupThemeToggle();
+        updateHeaderStats();
+        hideLoading();
+        console.log("App ready. Navigating to dashboard.");
+        navigate('dashboard');
+    } catch (e) {
+        console.error("Initialization error:", e);
+        hideLoading();
+        // Force render even on error
+        navigate('dashboard');
+    }
 }
 
 async function loadCloudData() {
@@ -80,13 +89,32 @@ async function loadCloudData() {
                             state.unlockedTopics = localData.unlockedTopics || state.topics.map(t => t.id);
                             
                             await saveCloudData();
-                            alert("Eski mavzularingiz topildi va bazaga muvaffaqiyatli yuklandi! 🔥✅");
+                            alert(`Eski mavzularingiz (${key}) topildi va yuklandi! 🔥✅`);
                             renderTopics();
-                            break; // Stop after first successful migration
+                            return; 
                         }
                     } catch (e) {
                         console.error(`Migration error for key ${key}:`, e);
                     }
+                }
+            }
+            
+            // DEEP SCAN: If still empty, scan EVERYTHING in localStorage for anything resembling topics
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('mathquest') || key.includes('admin') || key.includes('state')) {
+                    const val = localStorage.getItem(key);
+                    try {
+                        const parsed = JSON.parse(val);
+                        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id && parsed[0].title) {
+                            console.log("Deep scan found topics in key:", key);
+                            state.topics = parsed;
+                            await saveCloudData();
+                            alert("Deep Scan: Mavzular topildi! ✅");
+                            renderTopics();
+                            return;
+                        }
+                    } catch(e) {}
                 }
             }
         }
