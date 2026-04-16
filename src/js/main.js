@@ -276,6 +276,14 @@ function renderDashboard() {
         <div class="fade-in dashboard-view" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:80vh; text-align:center;">
             <h1 class="view-title" style="font-size:3.5rem; margin-bottom:1.5rem; text-shadow: 0 4px 15px rgba(0,0,0,0.3);">Xush kelibsiz, ${state.user.name}! 👋</h1>
             <p class="view-subtitle" style="color:rgba(255,255,255,1); font-size:1.8rem; font-weight:500; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">MathQuest Admin Paneliga xush kelibsiz. <br> Barcha amallarni chap tarafdagi menyu orqali bajarishingiz mumkin.</p>
+            
+            ${state.topics.length === 0 ? `
+            <div style="margin-top: 3rem; background: rgba(255, 193, 7, 0.2); backdrop-filter: blur(10px); padding: 2rem; border-radius: 20px; border: 1px solid #ffc107;">
+                <h3 style="color: #ffc107; margin-bottom: 1rem;">⚠️ Diqqat: Mavzular ko'rinmayaptimi?</h3>
+                <p style="font-size:1.1rem; margin-bottom:1.5rem;">Agar siz mavzularni <b>localhost</b>da kiritgan bo'lsangiz, ularni bulutga o'tkazish uchun o'sha kompyuterda saytni bir marta ochishingiz kerak.</p>
+                <button class="primary-btn" onclick="location.reload()" style="background: #ffc107; color: #000; font-size: 1rem; padding: 0.8rem 2rem;">🔄 Yangilash va qayta qidirish</button>
+            </div>
+            ` : ''}
         </div>
     `;
 }
