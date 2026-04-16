@@ -1,3 +1,4 @@
+(function() {
 // 1. Configuration (Uses centralized firebase-config.js)
 // firebase.initializeApp(firebaseConfig); // Handled by auth.js or index.html
 const db = firebase.firestore();
@@ -36,6 +37,17 @@ let currentQuizState = {
 async function initAdminPanel() {
     try {
         console.log("Admin Panel initializing...");
+        window.appNavigate = navigate;
+        window.startQuiz = (id) => navigate('quiz', id);
+        window.submitAnswer = submitAnswer;
+        window.rewardVideo = rewardVideo;
+        window.triggerUpload = triggerUpload;
+        window.openEditTopic = openEditTopic;
+        window.saveTopicEdit = saveTopicEdit;
+        window.removeMaterial = removeMaterial;
+        window.addQuestion = addQuestion;
+        window.toggleQuizOptions = toggleQuizOptions;
+        
         renderAdminLayout();
         showLoading();
         await loadCloudData();
@@ -645,13 +657,7 @@ function renderProfile() {
     `;
 }
 
-// Global Exports
-window.appNavigate = navigate;
-window.startQuiz = (id) => navigate('quiz', id);
-window.submitAnswer = submitAnswer;
-window.rewardVideo = rewardVideo;
-window.renderCurrentQuestion = renderCurrentQuestion;
-window.triggerUpload = triggerUpload;
+// Global Exports moved to initAdminPanel
 
 function renderMustahkamlash() {
     const container = document.getElementById('view-container');
@@ -849,6 +855,4 @@ async function removeMaterial(topicId, index) {
         openEditTopic(topicId); // Refresh edit view
     }
 }
-window.removeMaterial = removeMaterial;
-
-document.addEventListener('DOMContentLoaded', init);
+})(); // End of Admin Namespace

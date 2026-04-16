@@ -1,3 +1,4 @@
+(function() {
 // 1. Configuration (Uses centralized firebase-config.js)
 const db = firebase.firestore();
 
@@ -54,6 +55,12 @@ let currentQuizState = {
 async function initStudentPanel() {
     try {
         console.log("Student Panel initializing...");
+        window.appNavigate = navigate;
+        window.startQuiz = (id) => navigate('quiz', id);
+        window.submitAnswer = submitAnswer;
+        window.rewardVideo = rewardVideo;
+        window.mockUpload = mockUpload;
+        
         renderStudentLayout();
         showLoading();
         await loadCloudData();
@@ -490,10 +497,6 @@ function renderProfile() {
     `;
 }
 
-// Global helpers
-window.appNavigate = navigate;
-window.startQuiz = (id) => navigate('quiz', id);
-window.submitAnswer = submitAnswer;
-window.rewardVideo = rewardVideo;
+// Global helpers moved to initStudentPanel
 
-document.addEventListener('DOMContentLoaded', init);
+})(); // End of Student Namespace
