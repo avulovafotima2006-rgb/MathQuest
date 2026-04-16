@@ -62,27 +62,31 @@ async function loadCloudData() {
 
         // Migration check: if cloud is empty, check for local data
         if (state.topics.length === 0) {
-            const localDataRaw = localStorage.getItem('mathquest_admin_v1') || 
-                               localStorage.getItem('mathquest_v1') || 
-                               localStorage.getItem('mathquest_data');
-            
-            if (localDataRaw) {
-                try {
-                    const localData = JSON.parse(localDataRaw);
-                    if (localData.topics && localData.topics.length > 0) {
-                        state.xp = localData.xp || state.xp;
-                        state.level = localData.level || state.level;
-                        state.streak = localData.streak || state.streak;
-                        state.progress = localData.progress || state.progress;
-                        state.unlockedTopics = localData.unlockedTopics || state.unlockedTopics;
-                        state.topics = localData.topics;
-                        state.materials = localData.materials || state.materials;
+            const keys = ['mathquest_admin_v1', 'mathquest_v1', 'mathquest_data'];
+            for (let key of keys) {
+                const localDataRaw = localStorage.getItem(key);
+                if (localDataRaw) {
+                    try {
+                        const localData = JSON.parse(localDataRaw);
+                        // Is it a state object or just a topics array?
+                        const topicsToMigrate = localData.topics || (Array.isArray(localData) ? localData : null);
                         
-                        console.log("Migration: Moving local data to cloud...");
-                        await saveCloudData();
+                        if (topicsToMigrate && topicsToMigrate.length > 0) {
+                            console.log(`Migration: Found data in ${key}. Restoring...`);
+                            state.topics = topicsToMigrate;
+                            state.xp = localData.xp || state.xp;
+                            state.level = localData.level || state.level;
+                            state.materials = localData.materials || state.materials || {};
+                            state.unlockedTopics = localData.unlockedTopics || state.topics.map(t => t.id);
+                            
+                            await saveCloudData();
+                            alert("Eski mavzularingiz topildi va bazaga muvaffaqiyatli yuklandi! 🔥✅");
+                            renderTopics();
+                            break; // Stop after first successful migration
+                        }
+                    } catch (e) {
+                        console.error(`Migration error for key ${key}:`, e);
                     }
-                } catch (e) {
-                    console.error("Migration error", e);
                 }
             }
         }
